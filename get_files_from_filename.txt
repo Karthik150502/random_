@@ -1,0 +1,82 @@
+1 '''
+Run this code in cmd prompt to create a .ps1 file
+'''
+
+notepad get-files.ps1
+
+
+2. '''
+Paste the code below in the file, and change the destination of the results text file and add the required patterns.
+'''
+
+
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$Path
+)
+
+$patterns = @(
+    '*L*and*T*(2)*'
+    # Add more patterns here
+)
+
+if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+    Write-Error "Directory not found: $Path"
+    exit 1
+}
+
+$outputFile = Join-Path $env:USERPROFILE 'Desktop\dnd\shell\search-results.txt'
+
+$results = @(
+    Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $file = $_
+
+            foreach ($pattern in $patterns) {
+                if ($file.Name -like $pattern) {
+                    [PSCustomObject]@{
+                        FilePath = $file.FullName
+                        Pattern  = $pattern
+                    }
+                }
+            }
+        }
+)
+
+$lines = @(
+    "FILENAME SEARCH RESULTS"
+    "Search directory: $Path"
+    "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    "Total matches: $($results.Count)"
+    ""
+)
+
+for ($i = 0; $i -lt $results.Count; $i++) {
+    $lines += "[$($i + 1)]"
+    $lines += "File path: $($results[$i].FilePath)"
+    $lines += "Pattern:   $($results[$i].Pattern)"
+    $lines += ""
+}
+
+if ($results.Count -eq 0) {
+    $lines += "No matching filenames found."
+}
+
+$lines | Set-Content -LiteralPath $outputFile -Encoding UTF8
+
+Write-Host "Search completed."
+Write-Host "Total matches: $($results.Count)"
+Write-Host "Results saved to: $outputFile"
+
+Start-Process notepad.exe -ArgumentList "`"$outputFile`""
+
+
+3. '''
+Run this code to execute the .ps1 script
+'''
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\path\to\the\script\file\get-files.ps1" "C:\path\to\the\location\where\we\have\to\search"
+
+4. '''
+You will have a notepad files with all the matching results
+'''
